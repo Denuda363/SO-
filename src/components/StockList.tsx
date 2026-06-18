@@ -15,8 +15,12 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [searchHistory, setSearchHistory] = useState('');
+  const [searchStock, setSearchStock] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  
+  const [rowsPerPage, setRowsPerPage] = useState<number | 'all'>(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredTransactions = useMemo(() => {
     if (!searchHistory) return transactions;
@@ -79,6 +83,20 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
     return Array.from(stockMap.entries())
       .map(([name, data]) => ({ name, masuk: data.masuk, keluar: data.keluar, qty: data.masuk - data.keluar }));
   }, [transactions]);
+
+  const filteredStocks = useMemo(() => {
+    if (!searchStock) return currentStocks;
+    const query = searchStock.toLowerCase();
+    return currentStocks.filter(stock => stock.name.toLowerCase().includes(query));
+  }, [currentStocks, searchStock]);
+
+  const displayedStocks = useMemo(() => {
+    if (rowsPerPage === 'all') return filteredStocks;
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredStocks.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredStocks, rowsPerPage, currentPage]);
+
+  const totalPages = rowsPerPage === 'all' ? 1 : Math.ceil(filteredStocks.length / (rowsPerPage as number));
 
   const kritisCount = currentStocks.filter(s => s.qty > 0 && s.qty <= 10).length;
   const totalQty = currentStocks.reduce((sum, item) => sum + item.qty, 0);
@@ -157,12 +175,51 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">TERKONEKSI</span>
           </div>
         </div>
+
+        {/* Dynamic Stock Search Box & Row Restrictor */}
+        {!loading && currentStocks.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+              <input 
+                type="text" 
+                placeholder="Cari nama barang..." 
+                value={searchStock}
+                onChange={(e) => {
+                  setSearchStock(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-sm font-semibold pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 text-slate-700"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-xs font-bold text-slate-500 uppercase">Tampil:</label>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRowsPerPage(val === 'all' ? 'all' : parseInt(val, 10));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none cursor-pointer"
+              >
+                <option value={10}>10 Baris</option>
+                <option value={20}>20 Baris</option>
+                <option value={50}>50 Baris</option>
+                <option value="all">Semua</option>
+              </select>
+            </div>
+          </div>
+        )}
         
         <div className="flex-1 overflow-x-auto min-h-0 bg-white">
           {loading ? (
              <div className="flex h-full items-center justify-center text-slate-500 font-medium py-12">Memuat data stok...</div>
           ) : currentStocks.length === 0 ? (
              <div className="flex h-full items-center justify-center text-slate-500 font-medium py-12">Data kosong.</div>
+          ) : filteredStocks.length === 0 ? (
+             <div className="flex h-full items-center justify-center text-slate-500 font-medium py-12">Pencarian tidak ditemukan.</div>
           ) : (
             <>
               {/* DESKTOP TABLE VIEW */}
@@ -178,7 +235,7 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-slate-50">
-                    {currentStocks.map(stock => (
+                    {displayedStocks.map(stock => (
                       <tr key={stock.name} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-4 font-semibold text-slate-800 pl-1">{stock.name}</td>
                         <td className="py-4 text-emerald-600 font-bold">+{stock.masuk}</td>
@@ -201,7 +258,7 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
 
               {/* MOBILE CARD LIST VIEW */}
               <div className="block md:hidden space-y-3">
-                {currentStocks.map(stock => (
+                {displayedStocks.map(stock => (
                   <div key={stock.name} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/40 flex flex-col gap-3.5">
                     <div className="flex justify-between items-start gap-2">
                       <h4 className="font-bold text-slate-800 text-sm leading-snug break-words flex-1">{stock.name}</h4>
@@ -237,6 +294,34 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
             </>
           )}
         </div>
+        
+        {/* Pagination Controls */}
+        {!loading && filteredStocks.length > 0 && rowsPerPage !== 'all' && totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 shrink-0">
+            <p className="text-xs font-medium text-slate-500 hidden sm:block">
+              Menampilkan {((currentPage - 1) * (rowsPerPage as number)) + 1} - {Math.min(currentPage * (rowsPerPage as number), filteredStocks.length)} dari {filteredStocks.length} barang
+            </p>
+            <div className="flex items-center gap-1.5 sm:ml-auto w-full sm:w-auto justify-between sm:justify-start">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Sebelumnya
+              </button>
+              <div className="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100">
+                Hal {currentPage} / {totalPages}
+              </div>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Side Widgets */}
