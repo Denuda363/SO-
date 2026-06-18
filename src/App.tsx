@@ -27,7 +27,7 @@ export default function App() {
     return (
       <div className="h-screen bg-slate-50 flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-[5px] border-indigo-600 border-t-transparent rounded-full animate-spin mb-6 shadow-sm"></div>
-        <p className="text-slate-600 font-bold tracking-tight">Menyiapkan database lokal...</p>
+        <p className="text-slate-600 font-bold tracking-tight">Menyiapkan database (Firebase Firestore)...</p>
       </div>
     );
   }

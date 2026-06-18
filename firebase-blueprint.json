@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Historical inventory transaction records of Masuk or Keluar for items",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique transaction ID"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Transaction date and time ISO"
+        },
+        "itemName": {
+          "type": "string",
+          "description": "Name of the inventory item"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Masuk", "Keluar"],
+          "description": "Type of transaction"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of item"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or details"
+        }
+      },
+      "required": ["id", "date", "itemName", "type", "quantity"]
+    }
+  },
+  "firestore": {
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Store all stock in and out transactions"
+    }
+  }
+}

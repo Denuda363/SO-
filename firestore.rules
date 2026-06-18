@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow read, get, list: if true;
+      allow create: if isValidTransaction(request.resource.data) && isValidId(transactionId);
+      allow update: if isValidTransaction(request.resource.data) && isValidId(transactionId);
+      allow delete: if isValidId(transactionId);
+    }
+  }
+
+  function isValidId(id) {
+    return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_/\\-]+$');
+  }
+
+  function isValidTransaction(data) {
+    return data.keys().hasAll(['id', 'date', 'itemName', 'type', 'quantity'])
+      && (data.keys().size() == 5 || data.keys().size() == 6)
+      && (data.id is string && data.id.size() <= 128)
+      && (data.date is string && data.date.size() <= 64)
+      && (data.itemName is string && data.itemName.size() <= 256)
+      && (data.type == 'Masuk' || data.type == 'Keluar')
+      && (data.quantity is int || data.quantity is float)
+      && (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 1024));
+  }
+}

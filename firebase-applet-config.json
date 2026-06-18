@@ -3,6 +3,7 @@
   "appId": "1:878008590731:web:b5016a326f558e1541cf8e",
   "apiKey": "AIzaSyDyaLKoLKRe5BcENbrLP19qOoR0GEZflwk",
   "authDomain": "zany-voice-8wh20.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-be7999c2-f093-4e36-8497-472923e170be",
   "storageBucket": "zany-voice-8wh20.firebasestorage.app",
   "messagingSenderId": "878008590731",
   "measurementId": ""
