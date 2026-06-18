@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { User } from 'firebase/auth';
 import { PackageSearch, FileText, History, LogOut } from 'lucide-react';
 import { getTransactions, Transaction } from '../lib/sheets';
 import TransactionsForm from './TransactionsForm';
@@ -9,7 +8,7 @@ import MonthlyReport from './MonthlyReport';
 interface DashboardProps {
   token: string;
   spreadsheetId: string;
-  user: User | null;
+  user: any | null;
   onLogout: () => void;
 }
 
@@ -48,13 +47,9 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
           </div>
           <span className="font-bold text-lg tracking-tight uppercase">StokPintar</span>
         </div>
-        {user?.photoURL ? (
-          <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-lg" referrerPolicy="no-referrer" />
-        ) : (
-          <div className="w-8 h-8 bg-indigo-200 rounded-lg flex items-center justify-center text-indigo-700 font-bold">
-            {user?.displayName?.charAt(0) || user?.email?.charAt(0) || '?'}
-          </div>
-        )}
+        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
+           A
+        </div>
       </header>
 
       {/* Sidebar Nav (Desktop) */}
@@ -100,25 +95,14 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
 
         <div className="flex flex-col gap-4">
           <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="Avatar" className="w-10 h-10 rounded-lg" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-10 h-10 bg-indigo-200 rounded-lg flex items-center justify-center text-indigo-700 font-bold">
-                {user?.displayName?.charAt(0) || user?.email?.charAt(0) || '?'}
-              </div>
-            )}
+            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
+               A
+            </div>
             <div className="overflow-hidden">
               <p className="text-[10px] text-indigo-400 font-bold uppercase mb-0.5">Admin Aktif</p>
-              <p className="text-sm font-semibold text-slate-800 truncate">{user?.displayName}</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">Administrator</p>
             </div>
           </div>
-          <button 
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-sm font-bold"
-          >
-            <LogOut className="w-4 h-4" />
-            Keluar
-          </button>
         </div>
       </aside>
 
@@ -188,10 +172,6 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
         <button onClick={() => setActiveTab('report')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'report' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}>
           <FileText className="w-5 h-5" />
           <span className="text-[10px] font-bold">Laporan</span>
-        </button>
-        <button onClick={onLogout} className="flex flex-col items-center gap-1 p-2 text-rose-500 hover:text-rose-600">
-          <LogOut className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Keluar</span>
         </button>
       </nav>
     </div>

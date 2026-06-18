@@ -445,9 +445,9 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
                 {isCartSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {isCartSaving ? 'Menyimpan...' : `Simpan Semua ke Sheets (${cart.length} Item)`}
+                {isCartSaving ? 'Menyimpan...' : `Simpan Semua Data (${cart.length} Item)`}
               </button>
-              <p className="text-[9px] text-center text-slate-400 mt-2 font-medium">Semua item akan ditulis ke Google Sheets secara bersamaan.</p>
+              <p className="text-[9px] text-center text-slate-400 mt-2 font-medium">Semua item akan ditulis ke penyimpanan lokal secara bersamaan.</p>
             </div>
           )}
         </div>

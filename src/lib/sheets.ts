@@ -8,152 +8,83 @@ export interface Transaction {
   rowNumber?: number; // cell row number for edit/delete tracking
 }
 
-export async function findOrCreateSpreadsheet(accessToken: string): Promise<string> {
-  const q = "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
-  const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!searchRes.ok) throw new Error('Failed to search Drive');
-  
-  const searchData = await searchRes.json();
-  const existingMatches = searchData.files?.filter((f: any) => f.name === 'Data Stok Gudang (Inventaris)');
-  
-  if (existingMatches && existingMatches.length > 0) {
-    return existingMatches[0].id;
+const LOCAL_STORAGE_KEY = 'stokpintar_transactions';
+
+function getLocalTransactions(): Transaction[] {
+  const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    return [];
   }
-  
-  const createRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets`, {
-    method: 'POST',
-    headers: { 
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      properties: { title: 'Data Stok Gudang (Inventaris)' },
-      sheets: [{ properties: { title: 'Transactions' } }]
-    })
-  });
-  
-  if (!createRes.ok) throw new Error('Failed to create Spreadsheet');
-  
-  const createData = await createRes.json();
-  const spreadsheetId = createData.spreadsheetId;
-  
-  // Initialize headers
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A1:F1?valueInputOption=USER_ENTERED`, {
-    method: 'PUT',
-    headers: { 
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      values: [["ID", "Tanggal", "Nama Barang", "Tipe", "Kuantitas", "Catatan"]]
-    })
-  });
-  
-  return spreadsheetId;
+}
+
+function saveLocalTransactions(txs: Transaction[]) {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(txs));
+}
+
+export async function findOrCreateSpreadsheet(accessToken: string): Promise<string> {
+  // Mock spreadsheet creation by returning a fake ID
+  return new Promise(resolve => setTimeout(() => resolve('local_db'), 500));
 }
 
 export async function getTransactions(accessToken: string, spreadsheetId: string): Promise<Transaction[]> {
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A2:F`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) throw new Error('Failed to fetch transactions');
-  const data = await res.json();
-  
-  if (!data.values) return [];
-  
-  return data.values.map((row: any[], index: number) => ({
-    id: row[0] || '',
-    date: row[1] || '',
-    itemName: row[2] || '',
-    type: row[3] === 'Masuk' ? 'Masuk' : 'Keluar',
-    quantity: parseInt(row[4] || '0', 10),
-    notes: row[5] || '',
-    rowNumber: index + 2
-  }));
+  return new Promise(resolve => setTimeout(() => resolve(getLocalTransactions()), 200));
 }
 
 export async function appendTransaction(accessToken: string, spreadsheetId: string, tx: Transaction): Promise<void> {
-  const row = [tx.id, tx.date, tx.itemName, tx.type, tx.quantity.toString(), tx.notes];
-  
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A:F:append?valueInputOption=USER_ENTERED`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      values: [row]
-    })
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const txs = getLocalTransactions();
+      const newTx = { ...tx, rowNumber: txs.length > 0 ? (txs[txs.length - 1].rowNumber || 0) + 1 : 2 };
+      txs.push(newTx);
+      saveLocalTransactions(txs);
+      resolve();
+    }, 200);
   });
-  
-  if (!res.ok) throw new Error('Failed to append transaction');
 }
 
 export async function appendTransactions(accessToken: string, spreadsheetId: string, txs: Transaction[]): Promise<void> {
-  const rows = txs.map(tx => [tx.id, tx.date, tx.itemName, tx.type, tx.quantity.toString(), tx.notes]);
-  
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A:F:append?valueInputOption=USER_ENTERED`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      values: rows
-    })
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const existing = getLocalTransactions();
+      let lastRow = existing.length > 0 ? (existing[existing.length - 1].rowNumber || 0) : 1;
+      const newTxs = txs.map(tx => {
+        lastRow++;
+        return { ...tx, rowNumber: lastRow };
+      });
+      saveLocalTransactions([...existing, ...newTxs]);
+      resolve();
+    }, 200);
   });
-  
-  if (!res.ok) throw new Error('Failed to append transactions');
 }
 
 export async function getSheetId(accessToken: string, spreadsheetId: string, sheetTitle: string): Promise<number | null> {
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  const sheet = data.sheets?.find((s: any) => s.properties.title === sheetTitle);
-  return sheet ? sheet.properties.sheetId : null;
+  return Promise.resolve(0); // Mock sheet ID
 }
 
 export async function deleteTransactionRow(accessToken: string, spreadsheetId: string, sheetId: number, rowNumber: number): Promise<void> {
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      requests: [
-        {
-          deleteDimension: {
-            range: {
-              sheetId: sheetId,
-              dimension: "ROWS",
-              startIndex: rowNumber - 1,
-              endIndex: rowNumber
-            }
-          }
-        }
-      ]
-    })
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const txs = getLocalTransactions();
+      const filtered = txs.filter(tx => tx.rowNumber !== rowNumber);
+      saveLocalTransactions(filtered);
+      resolve();
+    }, 200);
   });
-  if (!res.ok) throw new Error('Failed to delete transaction row');
 }
 
-export async function updateTransactionRow(accessToken: string, spreadsheetId: string, rowNumber: number, tx: Transaction): Promise<void> {
-  const row = [tx.id, tx.date, tx.itemName, tx.type, tx.quantity.toString(), tx.notes];
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A${rowNumber}:F${rowNumber}?valueInputOption=USER_ENTERED`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      values: [row]
-    })
+export async function updateTransactionRow(accessToken: string, spreadsheetId: string, rowNumber: number, updatedTx: Transaction): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const txs = getLocalTransactions();
+      const index = txs.findIndex(tx => tx.rowNumber === rowNumber);
+      if (index !== -1) {
+        txs[index] = { ...updatedTx, rowNumber };
+        saveLocalTransactions(txs);
+      }
+      resolve();
+    }, 200);
   });
-  if (!res.ok) throw new Error('Failed to update transaction row');
 }
