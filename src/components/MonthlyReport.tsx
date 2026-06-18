@@ -3,6 +3,8 @@ import { Transaction } from '../lib/sheets';
 import { format, parseISO, isSameMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Props {
   transactions: Transaction[];
@@ -59,6 +61,59 @@ export default function MonthlyReport({ transactions, loading }: Props) {
     }));
   }, [transactions, selectedMonthStr, selectedMonthDate]);
 
+  const handleExportMonthlyReport = () => {
+    try {
+      const monthTransactions = transactions.filter(tx => {
+        try {
+          return isSameMonth(parseISO(tx.date), selectedMonthDate);
+        } catch (e) { return false; }
+      });
+
+      // 1. Sheet for Summary
+      const summaryData = reportData.map(row => ({
+        'Nama Barang': row.name,
+        'Total Masuk': row.Masuk,
+        'Total Keluar': row.Keluar,
+        'Mutasi Bersih': row.Masuk - row.Keluar
+      }));
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      wsSummary['!cols'] = [
+        { wch: 30 }, // Nama Barang
+        { wch: 15 }, // Total Masuk
+        { wch: 15 }, // Total Keluar
+        { wch: 15 }  // Mutasi Bersih
+      ];
+
+      // 2. Sheet for Detailed Transactions in this specific month
+      const detailedTxs = monthTransactions.map(tx => ({
+        'Tanggal': new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}),
+        'Jam': new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}),
+        'Nama Barang': tx.itemName,
+        'Tipe': tx.type,
+        'Kuantitas': tx.quantity,
+        'Catatan': tx.notes || '-'
+      }));
+      const wsDetails = XLSX.utils.json_to_sheet(detailedTxs);
+      wsDetails['!cols'] = [
+        { wch: 20 }, // Tanggal
+        { wch: 10 }, // Jam
+        { wch: 30 }, // Nama Barang
+        { wch: 15 }, // Tipe
+        { wch: 12 }, // Kuantitas
+        { wch: 35 }  // Catatan
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const monthName = format(selectedMonthDate, 'MMMM_yyyy', { locale: localeId });
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Bulanan');
+      XLSX.utils.book_append_sheet(wb, wsDetails, 'Transaksi Detail');
+
+      XLSX.writeFile(wb, `Laporan_Bulanan_${monthName}.xlsx`);
+    } catch (e) {
+      console.error('Failed to export monthly report to Excel:', e);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12 text-slate-500">Memuat laporan...</div>;
   }
@@ -66,9 +121,20 @@ export default function MonthlyReport({ transactions, loading }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
       <div className="md:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col min-h-[450px]">
-        <div className="flex justify-between items-center mb-6 shrink-0">
+        <div className="flex justify-between items-center mb-6 shrink-0 flex-wrap gap-2">
           <h2 className="font-bold text-lg">Laporan Bulanan</h2>
-          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-widest">{format(selectedMonthDate, 'MMMM', { locale: localeId })}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportMonthlyReport}
+              disabled={reportData.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-600/10 active:scale-95 duration-150"
+              title="Ekspor Laporan Bulanan ke Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Ekspor Laporan
+            </button>
+            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-full uppercase tracking-widest">{format(selectedMonthDate, 'MMMM', { locale: localeId })}</span>
+          </div>
         </div>
 
         <div className="flex-1 w-full relative min-h-0">

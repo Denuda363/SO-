@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, deleteTransactionRow, updateTransactionRow, getSheetId } from '../lib/sheets';
-import { RefreshCw, Edit2, Trash2, Search, X, Loader2 } from 'lucide-react';
+import { RefreshCw, Edit2, Trash2, Search, X, Loader2, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Props {
   transactions: Transaction[];
@@ -82,14 +83,79 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
   const kritisCount = currentStocks.filter(s => s.qty > 0 && s.qty <= 10).length;
   const totalQty = currentStocks.reduce((sum, item) => sum + item.qty, 0);
 
+  const handleExportToExcel = () => {
+    try {
+      // 1. Sheet for current stock status
+      const stockData = currentStocks.map(stock => ({
+        'Nama Barang': stock.name,
+        'Jumlah Masuk': stock.masuk,
+        'Jumlah Keluar': stock.keluar,
+        'Stok Akhir': stock.qty,
+        'Status': stock.qty <= 0 ? 'HABIS' : stock.qty <= 10 ? 'KRITIS' : 'AMAN'
+      }));
+      const wsStock = XLSX.utils.json_to_sheet(stockData);
+
+      // Set nice column widths for sheet 1
+      wsStock['!cols'] = [
+        { wch: 30 }, // Nama Barang
+        { wch: 15 }, // Jumlah Masuk
+        { wch: 15 }, // Jumlah Keluar
+        { wch: 15 }, // Stok Akhir
+        { wch: 15 }  // Status
+      ];
+
+      // 2. Sheet for transaction history
+      const txData = transactions.map(tx => ({
+        'Tanggal Transaksi': new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}),
+        'Jam': new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}),
+        'Nama Barang': tx.itemName,
+        'Tipe Transaksi': tx.type,
+        'Kuantitas': tx.quantity,
+        'Keterangan/Catatan': tx.notes || '-'
+      }));
+      const wsTx = XLSX.utils.json_to_sheet(txData);
+
+      // Set nice column widths for sheet 2
+      wsTx['!cols'] = [
+        { wch: 20 }, // Tanggal
+        { wch: 10 }, // Jam
+        { wch: 30 }, // Nama Barang
+        { wch: 15 }, // Tipe
+        { wch: 12 }, // Kuantitas
+        { wch: 35 }  // Catatan
+      ];
+
+      // 3. Combine both sheets into one workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsStock, 'Status Stok Saat Ini');
+      XLSX.utils.book_append_sheet(wb, wsTx, 'Riwayat Transaksi Lengkap');
+
+      // 4. Download file
+      XLSX.writeFile(wb, `Laporan_StokPintar_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error('Failed to export to Excel:', error);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-min md:h-[calc(100vh-160px)]">
       
       {/* Main Inventory List */}
       <div className="md:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col overflow-hidden min-h-[400px]">
-        <div className="flex justify-between items-center mb-6 shrink-0">
+        <div className="flex justify-between items-center mb-6 shrink-0 flex-wrap gap-2">
           <h2 className="font-bold text-lg">Status Stok Real-Time</h2>
-          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">TERKONEKSI</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportToExcel}
+              disabled={loading || currentStocks.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-600/10 active:scale-95 duration-150"
+              title="Ekspor Data Stok & Transaksi ke Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Ekspor Excel
+            </button>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">TERKONEKSI</span>
+          </div>
         </div>
         
         <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 bg-white">
