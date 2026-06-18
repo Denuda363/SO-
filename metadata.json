@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Gudang",
+  "description": "WebApp untuk input barang masuk dan barang keluar dengan fitur pelacakan stok secara real-time dan laporan bulanan otomatis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
