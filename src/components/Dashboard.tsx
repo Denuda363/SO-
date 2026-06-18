@@ -41,15 +41,20 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
     <div className="h-screen w-full bg-slate-50 flex flex-col md:flex-row overflow-hidden font-sans text-slate-900 md:border-8 md:border-slate-200">
       {/* Mobile Top Header */}
       <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
             <PackageSearch className="w-4 h-4" />
           </div>
-          <span className="font-bold text-lg tracking-tight uppercase">StokPintar</span>
+          <span className="font-extrabold text-base tracking-tight uppercase text-indigo-900">StokPintar</span>
         </div>
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
-           A
-        </div>
+        <button 
+          onClick={onLogout}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 active:bg-rose-100 rounded-xl text-xs font-bold transition-all"
+          title="Sign Out"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Keluar
+        </button>
       </header>
 
       {/* Sidebar Nav (Desktop) */}
@@ -93,7 +98,7 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
           </button>
         </nav>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
                A
@@ -103,6 +108,13 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
               <p className="text-sm font-semibold text-slate-800 truncate">Administrator</p>
             </div>
           </div>
+          <button 
+            onClick={onLogout}
+            className="w-full py-2.5 bg-rose-50 hover:bg-rose-100/80 active:scale-95 text-rose-600 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 border border-rose-100"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Keluar Aplikasi
+          </button>
         </div>
       </aside>
 

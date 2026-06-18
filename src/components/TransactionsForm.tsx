@@ -1,7 +1,21 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { appendTransaction, appendTransactions, Transaction } from '../lib/sheets';
-import { ShoppingCart, Trash2, Plus, Loader2, Trash } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  Trash2, 
+  Plus, 
+  Minus,
+  Loader2, 
+  Trash, 
+  Calendar, 
+  Tag, 
+  FileText, 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  X,
+  Sparkles
+} from 'lucide-react';
 
 interface Props {
   token: string;
@@ -252,7 +266,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider text-[11px] opacity-80">Jenis Transaksi</label>
               <div className="flex gap-4 flex-col sm:flex-row">
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.type === 'Masuk' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
+                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${formData.type === 'Masuk' ? 'border-emerald-500 bg-emerald-50/50 text-emerald-800 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/55'}`}>
                   <input 
                     type="radio" 
                     name="type" 
@@ -261,10 +275,11 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
                     onChange={(e) => setFormData({...formData, type: e.target.value as any})}
                     className="hidden" 
                   />
-                  <div className="font-bold text-lg">Barang Masuk</div>
+                  <ArrowUpRight className={`w-5 h-5 transition-transform ${formData.type === 'Masuk' ? 'text-emerald-600 scale-110' : 'text-slate-400'}`} />
+                  <div className="font-extrabold text-base">Barang Masuk</div>
                 </label>
                 
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.type === 'Keluar' ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>
+                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${formData.type === 'Keluar' ? 'border-rose-500 bg-rose-50/55 text-rose-800 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/55'}`}>
                   <input 
                     type="radio" 
                     name="type" 
@@ -273,55 +288,50 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
                     onChange={(e) => setFormData({...formData, type: e.target.value as any})}
                     className="hidden" 
                   />
-                  <div className="font-bold text-lg">Barang Keluar</div>
+                  <ArrowDownLeft className={`w-5 h-5 transition-transform ${formData.type === 'Keluar' ? 'text-rose-600 scale-110' : 'text-slate-400'}`} />
+                  <div className="font-extrabold text-base">Barang Keluar</div>
                 </label>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80">Tanggal Transaksi</label>
-              <input 
-                type="date" 
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-medium"
-              />
-            </div>
-
-            <div>
-               <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80">Kuantitas</label>
-              <input 
-                type="number" 
-                required
-                min="1"
-                placeholder="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-bold"
-              />
-            </div>
-
             <div className="md:col-span-2 relative" ref={dropdownRef}>
-              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80">Nama Barang</label>
-              <input 
-                type="text" 
-                required
-                placeholder="Ketik untuk mencari atau ketik barang baru..."
-                value={formData.itemName}
-                onChange={(e) => {
-                  setFormData({...formData, itemName: e.target.value});
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-semibold"
-              />
+              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-slate-400" />
+                Nama Barang
+              </label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Cari atau ketik barang baru..."
+                  value={formData.itemName}
+                  onChange={(e) => {
+                    setFormData({...formData, itemName: e.target.value});
+                    setShowDropdown(true);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  className="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-semibold text-slate-800 h-12"
+                />
+                {formData.itemName && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({...formData, itemName: ''});
+                      setShowDropdown(false);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors active:scale-90"
+                    title="Hapus input"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               {showDropdown && filteredItems.length > 0 && (
-                <ul className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto overflow-x-hidden">
+                <ul className="absolute z-30 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto overflow-x-hidden">
                   {filteredItems.map(item => (
                     <li 
                       key={item} 
-                      className="px-4 py-3 cursor-pointer hover:bg-slate-50 font-medium text-slate-700 border-b border-slate-50 last:border-b-0"
+                      className="px-4 py-3 cursor-pointer hover:bg-indigo-50 font-bold text-slate-700 hover:text-indigo-900 border-b border-slate-50 last:border-b-0 min-h-[44px] flex items-center transition-colors"
                       onClick={() => {
                         setFormData({...formData, itemName: item});
                         setShowDropdown(false);
@@ -334,24 +344,101 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
               )}
             </div>
 
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80">Kuantitas / Jumlah</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = parseInt(formData.quantity, 10) || 0;
+                    if (currentVal > 1) {
+                      setFormData({ ...formData, quantity: String(currentVal - 1) });
+                    }
+                  }}
+                  className="w-12 h-12 flex items-center justify-center border border-slate-300 rounded-xl bg-slate-50 active:bg-slate-100 hover:bg-slate-100/50 text-slate-600 font-bold transition-all shrink-0 active:scale-90"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <input 
+                  type="number" 
+                  required
+                  min="1"
+                  placeholder="0"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                  className="w-full h-12 text-center px-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-extrabold text-slate-800 text-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = parseInt(formData.quantity, 10) || 0;
+                    setFormData({ ...formData, quantity: String(currentVal + 1) });
+                  }}
+                  className="w-12 h-12 flex items-center justify-center border border-slate-300 rounded-xl bg-slate-50 active:bg-slate-100 hover:bg-slate-100/50 text-slate-600 font-bold transition-all shrink-0 active:scale-90"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              {/* Quick Preset Buttons */}
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                {[5, 10, 20, 50, 100].map(preset => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      const currentVal = parseInt(formData.quantity, 10) || 0;
+                      setFormData({ ...formData, quantity: String(currentVal + preset) });
+                    }}
+                    className="px-2.5 py-1 text-[10px] font-extrabold text-indigo-600 bg-indigo-50/50 border border-indigo-100 rounded-lg active:scale-95 hover:bg-indigo-100 transition-all"
+                  >
+                    +{preset}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, quantity: '1' })}
+                  className="px-2.5 py-1 text-[10px] font-extrabold text-slate-500 bg-slate-100 border border-slate-200 rounded-lg active:scale-95 hover:bg-slate-200 transition-all ml-auto"
+                >
+                  Reset (1)
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                Tanggal Transaksi
+              </label>
+              <input 
+                type="date" 
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-semibold text-slate-700 h-12"
+              />
+            </div>
+
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80">Catatan Keterangan (Opsional)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                Catatan Keterangan (Opsional)
+              </label>
               <textarea 
                 rows={3}
                 placeholder="Contoh: Restock dari supplier PT ABCD"
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow resize-none bg-slate-50 font-medium"
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow resize-none bg-slate-50 font-medium text-slate-700"
               ></textarea>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button 
               type="button"
               disabled={isSubmitting || isCartSaving}
               onClick={handleAddToCart}
-              className="flex-1 py-4 px-6 rounded-2xl font-bold bg-slate-800 hover:bg-slate-700 text-white transition-all shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 py-4 px-6 rounded-2xl font-bold bg-slate-800 hover:bg-slate-700 active:bg-slate-900 active:scale-[0.98] text-white transition-all shadow-lg flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Tambah ke Keranjang
@@ -359,7 +446,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
             <button 
               type="submit" 
               disabled={isSubmitting || isCartSaving}
-              className={`flex-1 py-4 px-6 rounded-2xl font-bold text-white transition-all shadow-lg ${isSubmitting ? 'bg-slate-400 cursor-not-allowed shadow-none' : formData.type === 'Masuk' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-700/20' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-700/20'}`}
+              className={`flex-1 py-4 px-6 rounded-2xl font-bold text-white transition-all shadow-lg active:scale-[0.98] ${isSubmitting ? 'bg-slate-400 cursor-not-allowed shadow-none' : formData.type === 'Masuk' ? 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 shadow-emerald-700/20' : 'bg-rose-600 hover:bg-rose-700 active:bg-rose-800 shadow-rose-700/20'}`}
             >
               {isSubmitting ? 'Menyimpan...' : `Simpan Langsung`}
             </button>
@@ -367,7 +454,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
         </form>
       </div>
 
-      <div className="md:col-span-4 flex flex-col gap-4">
+      <div id="transaction-cart-section" className="md:col-span-4 flex flex-col gap-4">
         {/* Dynamic Interactive Transaction Cart */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col min-h-[300px]">
           <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-100 pb-3">
@@ -479,6 +566,28 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
           </div>
         </div>
       </div>
+
+      {/* Mobile Floating Feedback Badge */}
+      {cart.length > 0 && (
+        <div className="md:hidden fixed bottom-16 left-4 right-4 bg-indigo-600 text-white rounded-2xl p-4 shadow-xl flex justify-between items-center z-40 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-white animate-bounce" />
+            <div>
+              <p className="font-bold text-xs">{cart.length} Item di Keranjang</p>
+              <p className="text-[10px] text-indigo-100 font-medium">Siap kirim ke penyimpanan</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const el = document.getElementById('transaction-cart-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="bg-white text-indigo-700 hover:bg-slate-50 font-bold text-[11px] px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+          >
+            Selesaikan
+          </button>
+        </div>
+      )}
     </div>
   );
 }

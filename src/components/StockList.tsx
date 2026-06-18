@@ -158,42 +158,83 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
           </div>
         </div>
         
-        <div className="flex-1 overflow-x-auto overflow-y-auto min-h-0 bg-white">
+        <div className="flex-1 overflow-x-auto min-h-0 bg-white">
           {loading ? (
-             <div className="flex h-full items-center justify-center text-slate-500 font-medium">Memuat data stok...</div>
+             <div className="flex h-full items-center justify-center text-slate-500 font-medium py-12">Memuat data stok...</div>
           ) : currentStocks.length === 0 ? (
-             <div className="flex h-full items-center justify-center text-slate-500 font-medium">Data kosong.</div>
+             <div className="flex h-full items-center justify-center text-slate-500 font-medium py-12">Data kosong.</div>
           ) : (
-            <table className="w-full text-left min-w-[500px]">
-              <thead className="text-xs text-slate-400 uppercase font-bold border-b border-slate-100 sticky top-0 bg-white shadow-[0_1px_0_#f1f5f9]">
-                <tr>
-                  <th className="pb-3 text-slate-500 pl-1">Nama Barang</th>
-                  <th className="pb-3 text-slate-500">Masuk</th>
-                  <th className="pb-3 text-slate-500">Keluar</th>
-                  <th className="pb-3 text-slate-500">Stok Akhir</th>
-                  <th className="pb-3 text-right text-slate-500 pr-1">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm divide-y divide-slate-50">
+            <>
+              {/* DESKTOP TABLE VIEW */}
+              <div className="hidden md:block">
+                <table className="w-full text-left min-w-[500px]">
+                  <thead className="text-xs text-slate-400 uppercase font-bold border-b border-slate-100 sticky top-0 bg-white shadow-[0_1px_0_#f1f5f9]">
+                    <tr>
+                      <th className="pb-3 text-slate-500 pl-1">Nama Barang</th>
+                      <th className="pb-3 text-slate-500">Masuk</th>
+                      <th className="pb-3 text-slate-500">Keluar</th>
+                      <th className="pb-3 text-slate-500">Stok Akhir</th>
+                      <th className="pb-3 text-right text-slate-500 pr-1">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-slate-50">
+                    {currentStocks.map(stock => (
+                      <tr key={stock.name} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 font-semibold text-slate-800 pl-1">{stock.name}</td>
+                        <td className="py-4 text-emerald-600 font-bold">+{stock.masuk}</td>
+                        <td className="py-4 text-rose-600 font-bold">-{stock.keluar}</td>
+                        <td className="py-4 font-medium text-slate-700">{stock.qty} Unit</td>
+                        <td className="py-4 text-right pr-1">
+                          {stock.qty <= 0 ? (
+                            <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-bold">HABIS</span>
+                          ) : stock.qty <= 10 ? (
+                            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">KRITIS</span>
+                          ) : (
+                            <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">AMAN</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARD LIST VIEW */}
+              <div className="block md:hidden space-y-3">
                 {currentStocks.map(stock => (
-                  <tr key={stock.name} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 font-semibold text-slate-800 pl-1">{stock.name}</td>
-                    <td className="py-4 text-emerald-600 font-bold">+{stock.masuk}</td>
-                    <td className="py-4 text-rose-600 font-bold">-{stock.keluar}</td>
-                    <td className="py-4 font-medium text-slate-700">{stock.qty} Unit</td>
-                    <td className="py-4 text-right pr-1">
+                  <div key={stock.name} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/40 flex flex-col gap-3.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-bold text-slate-800 text-sm leading-snug break-words flex-1">{stock.name}</h4>
                       {stock.qty <= 0 ? (
-                        <span className="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-bold">HABIS</span>
+                        <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-lg text-[9px] font-extrabold tracking-wider shrink-0">HABIS</span>
                       ) : stock.qty <= 10 ? (
-                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">KRITIS</span>
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-lg text-[9px] font-extrabold tracking-wider shrink-0">KRITIS</span>
                       ) : (
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">AMAN</span>
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-[9px] font-extrabold tracking-wider shrink-0">AMAN</span>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-2.5">
+                      <div className="flex gap-4">
+                        <div>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Masuk</p>
+                          <p className="text-emerald-600 font-bold mt-0.5">+{stock.masuk}</p>
+                        </div>
+                        <div className="border-l border-slate-200"></div>
+                        <div>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Keluar</p>
+                          <p className="text-rose-600 font-bold mt-0.5">-{stock.keluar}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Stok Akhir</p>
+                        <p className="text-sm font-extrabold text-slate-800 mt-0.5">{stock.qty} Unit</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       </div>
