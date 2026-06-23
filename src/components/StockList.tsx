@@ -13,11 +13,7 @@ interface Props {
 }
 
 export default function StockList({ transactions, loading, onRefresh, token, spreadsheetId }: Props) {
-  const [searchHistory, setSearchHistory] = useState('');
-  const [filterType, setFilterType] = useState<'Semua' | 'Masuk' | 'Keluar'>('Semua');
   const [searchStock, setSearchStock] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
   
   const [rowsPerPage, setRowsPerPage] = useState<number | 'all'>(10);
   const [currentPage, setCurrentPage] = useState(1);
