@@ -163,6 +163,8 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
               token={token} 
               spreadsheetId={spreadsheetId} 
               transactions={transactions}
+              loading={loading}
+              onRefresh={loadData}
               onSuccess={() => {
                 loadData();
                 setActiveTab('stock');

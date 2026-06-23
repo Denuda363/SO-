@@ -93,10 +93,10 @@ export async function getTransactions(accessToken: string, spreadsheetId: string
       transactions.push({
         id: data.id || docSnap.id,
         date: safeDate,
-        itemName: data.itemName || '',
+        itemName: String(data.itemName || ''),
         type: data.type === 'Masuk' ? 'Masuk' : 'Keluar',
         quantity: Number(data.quantity) || 0,
-        notes: data.notes || '',
+        notes: String(data.notes || ''),
         rowNumber: index + 2 // Assign dynamic sequential rowNumber consistent with old sheets logic
       });
       index++;

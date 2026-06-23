@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { appendTransaction, appendTransactions, Transaction } from '../lib/sheets';
+import TransactionHistory from './TransactionHistory';
 import { 
   ShoppingCart, 
   Trash2, 
@@ -21,10 +22,12 @@ interface Props {
   token: string;
   spreadsheetId: string;
   transactions: Transaction[];
+  loading?: boolean;
+  onRefresh?: () => void;
   onSuccess: () => void;
 }
 
-export default function TransactionsForm({ token, spreadsheetId, transactions, onSuccess }: Props) {
+export default function TransactionsForm({ token, spreadsheetId, transactions, loading = false, onRefresh, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isCartSaving, setIsCartSaving] = useState(false);
@@ -45,6 +48,15 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
     const items = new Set<string>();
     transactions.forEach(t => items.add(t.itemName));
     return Array.from(items).sort();
+  }, [transactions]);
+
+  const stockMap = useMemo(() => {
+    const map = new Map<string, number>();
+    transactions.forEach(tx => {
+      const current = map.get(tx.itemName) || 0;
+      map.set(tx.itemName, current + (tx.type === 'Masuk' ? tx.quantity : -tx.quantity));
+    });
+    return map;
   }, [transactions]);
 
   const filteredItems = useMemo(() => {
@@ -253,52 +265,47 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-      <div className="md:col-span-8 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8">
-        <h2 className="text-xl font-bold text-slate-800 mb-6 tracking-tight">Formulir Barang</h2>
+      <div className="md:col-span-8 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="flex border-b border-slate-200">
+          <button 
+            type="button"
+            onClick={() => setFormData({...formData, type: 'Masuk'})}
+            className={`flex-1 flex items-center justify-center gap-2 py-5 font-bold text-sm sm:text-base transition-all ${
+              formData.type === 'Masuk' 
+                ? 'bg-emerald-50 text-emerald-700 border-b-2 border-emerald-500'
+                : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            <ArrowUpRight className="w-5 h-5" />
+            Form Barang Masuk
+          </button>
+          <button 
+            type="button"
+            onClick={() => setFormData({...formData, type: 'Keluar'})}
+            className={`flex-1 flex items-center justify-center gap-2 py-5 font-bold text-sm sm:text-base transition-all ${
+              formData.type === 'Keluar' 
+                ? 'bg-rose-50 text-rose-700 border-b-2 border-rose-500'
+                : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+            }`}
+          >
+            <ArrowDownLeft className="w-5 h-5" />
+            Form Barang Keluar
+          </button>
+        </div>
 
-        {error && (
-          <div className="mb-6 bg-rose-50 text-rose-700 p-4 rounded-xl flex items-start gap-3 text-sm font-semibold border border-rose-100">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider text-[11px] opacity-80">Jenis Transaksi</label>
-              <div className="flex gap-4 flex-col sm:flex-row">
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${formData.type === 'Masuk' ? 'border-emerald-500 bg-emerald-50/50 text-emerald-800 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/55'}`}>
-                  <input 
-                    type="radio" 
-                    name="type" 
-                    value="Masuk" 
-                    checked={formData.type === 'Masuk'} 
-                    onChange={(e) => setFormData({...formData, type: e.target.value as any})}
-                    className="hidden" 
-                  />
-                  <ArrowUpRight className={`w-5 h-5 transition-transform ${formData.type === 'Masuk' ? 'text-emerald-600 scale-110' : 'text-slate-400'}`} />
-                  <div className="font-extrabold text-base">Barang Masuk</div>
-                </label>
-                
-                <label className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${formData.type === 'Keluar' ? 'border-rose-500 bg-rose-50/55 text-rose-800 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/55'}`}>
-                  <input 
-                    type="radio" 
-                    name="type" 
-                    value="Keluar" 
-                    checked={formData.type === 'Keluar'} 
-                    onChange={(e) => setFormData({...formData, type: e.target.value as any})}
-                    className="hidden" 
-                  />
-                  <ArrowDownLeft className={`w-5 h-5 transition-transform ${formData.type === 'Keluar' ? 'text-rose-600 scale-110' : 'text-slate-400'}`} />
-                  <div className="font-extrabold text-base">Barang Keluar</div>
-                </label>
-              </div>
+        <div className="p-6 md:p-8">
+          {error && (
+            <div className="mb-6 bg-rose-50 text-rose-700 p-4 rounded-xl flex items-start gap-3 text-sm font-semibold border border-rose-100">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>{error}</p>
             </div>
+          )}
 
-            <div className="md:col-span-2 relative" ref={dropdownRef}>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2 relative" ref={dropdownRef}>
               <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-[11px] opacity-80 flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-slate-400" />
                 Nama Barang
@@ -332,18 +339,24 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
               </div>
               {showDropdown && filteredItems.length > 0 && (
                 <ul className="absolute z-30 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto overflow-x-hidden">
-                  {filteredItems.map(item => (
-                    <li 
-                      key={item} 
-                      className="px-4 py-3 cursor-pointer hover:bg-indigo-50 font-bold text-slate-700 hover:text-indigo-900 border-b border-slate-50 last:border-b-0 min-h-[44px] flex items-center transition-colors"
-                      onClick={() => {
-                        setFormData({...formData, itemName: item});
-                        setShowDropdown(false);
-                      }}
-                    >
-                      {item}
-                    </li>
-                  ))}
+                  {filteredItems.map(item => {
+                    const stock = stockMap.get(item) || 0;
+                    return (
+                      <li 
+                        key={item} 
+                        className="px-4 py-3 cursor-pointer hover:bg-indigo-50 font-bold text-slate-700 hover:text-indigo-900 border-b border-slate-50 last:border-b-0 min-h-[44px] flex items-center justify-between transition-colors"
+                        onClick={() => {
+                          setFormData({...formData, itemName: item});
+                          setShowDropdown(false);
+                        }}
+                      >
+                        <span className="truncate">{item}</span>
+                        <span className={`text-xs ml-2 shrink-0 px-2 py-1 rounded-md ${stock > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'}`}>
+                          Stok: {stock}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -456,6 +469,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
             </button>
           </div>
         </form>
+        </div>
       </div>
 
       <div id="transaction-cart-section" className="md:col-span-4 flex flex-col gap-4">
@@ -592,6 +606,17 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
           </button>
         </div>
       )}
+
+      {/* Transaction History Section added to input page */}
+      <div className="md:col-span-12 mt-4">
+        <TransactionHistory 
+          token={token} 
+          spreadsheetId={spreadsheetId} 
+          transactions={transactions}
+          loading={loading}
+          onRefresh={onRefresh || (() => {})}
+        />
+      </div>
     </div>
   );
 }
