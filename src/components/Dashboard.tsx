@@ -24,7 +24,11 @@ export default function Dashboard({ token, spreadsheetId, user, onLogout }: Dash
     try {
       const data = await getTransactions(token, spreadsheetId);
       // Sort by date descending
-      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      data.sort((a, b) => {
+        const timeA = new Date(a.date).getTime();
+        const timeB = new Date(b.date).getTime();
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+      });
       setTransactions(data);
     } catch (err) {
       console.error('Failed to load transactions', err);

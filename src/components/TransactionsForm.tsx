@@ -118,7 +118,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
           if (itemName) {
             const qty = parseInt(String(stokAwal), 10);
             const t: Transaction = {
-              id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+              id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
               date: new Date().toISOString(),
               itemName: String(itemName).trim(),
               type: 'Masuk',
@@ -137,7 +137,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
 
           if (itemName && typeStr && quantity) {
             const t: Transaction = {
-              id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+              id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
               date: new Date(dateStr).toString() !== 'Invalid Date' ? new Date(dateStr).toISOString() : new Date().toISOString(),
               itemName: String(itemName).trim(),
               type: String(typeStr).trim().toLowerCase() === 'keluar' ? 'Keluar' : 'Masuk',
@@ -171,8 +171,10 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
     setError(null);
 
     const newItem: Transaction = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      date: new Date(formData.date).toISOString(),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+      date: formData.date && new Date(formData.date).toString() !== 'Invalid Date' 
+        ? new Date(formData.date).toISOString() 
+        : new Date().toISOString(),
       itemName: formData.itemName.trim(),
       type: formData.type,
       quantity: parseInt(formData.quantity, 10),
@@ -222,8 +224,10 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
     setError(null);
 
     const tx: Transaction = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      date: new Date(formData.date).toISOString(), // full ISO
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+      date: formData.date && new Date(formData.date).toString() !== 'Invalid Date' 
+        ? new Date(formData.date).toISOString() 
+        : new Date().toISOString(),
       itemName: formData.itemName.trim(),
       type: formData.type,
       quantity: parseInt(formData.quantity, 10),
@@ -495,7 +499,7 @@ export default function TransactionsForm({ token, spreadsheetId, transactions, o
                           {item.type}
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">
-                          {new Date(item.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
+                          {item.date && new Date(item.date).toString() !== 'Invalid Date' ? new Date(item.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}) : '-'}
                         </span>
                         {item.notes && (
                           <span className="text-[9px] text-slate-500 truncate max-w-[80px]" title={item.notes}>

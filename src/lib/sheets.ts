@@ -84,9 +84,15 @@ export async function getTransactions(accessToken: string, spreadsheetId: string
     let index = 0;
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
+      
+      let safeDate = new Date().toISOString();
+      if (data.date && new Date(data.date).toString() !== 'Invalid Date') {
+        safeDate = data.date;
+      }
+
       transactions.push({
         id: data.id || docSnap.id,
-        date: data.date || '',
+        date: safeDate,
         itemName: data.itemName || '',
         type: data.type === 'Masuk' ? 'Masuk' : 'Keluar',
         quantity: Number(data.quantity) || 0,

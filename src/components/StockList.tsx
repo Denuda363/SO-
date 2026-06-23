@@ -15,6 +15,7 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [searchHistory, setSearchHistory] = useState('');
+  const [filterType, setFilterType] = useState<'Semua' | 'Masuk' | 'Keluar'>('Semua');
   const [searchStock, setSearchStock] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -24,9 +25,14 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
 
   const filteredTransactions = useMemo(() => {
     let result = transactions;
+
+    if (filterType !== 'Semua') {
+      result = result.filter(tx => tx.type === filterType);
+    }
+
     if (searchHistory) {
       const query = searchHistory.toLowerCase();
-      result = transactions.filter(tx => 
+      result = result.filter(tx => 
         tx.itemName.toLowerCase().includes(query) ||
         (tx.notes && tx.notes.toLowerCase().includes(query)) ||
         tx.type.toLowerCase().includes(query) ||
@@ -35,7 +41,7 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
     }
     // Reverse logic or Sort by date to make the latest transaction appear first.
     return [...result].reverse(); // Assuming google sheets appends to the bottom, `.reverse()` puts latest on top.
-  }, [transactions, searchHistory]);
+  }, [transactions, searchHistory, filterType]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,8 +134,8 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
 
       // 2. Sheet for transaction history
       const txData = transactions.map(tx => ({
-        'Tanggal Transaksi': new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}),
-        'Jam': new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}),
+        'Tanggal Transaksi': tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-',
+        'Jam': tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : '-',
         'Nama Barang': tx.itemName,
         'Tipe Transaksi': tx.type,
         'Kuantitas': tx.quantity,
@@ -363,17 +369,36 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
             <h2 className="font-bold text-lg">Riwayat Transaksi</h2>
           </div>
           
-          {/* Dynamic Search Box */}
+          {/* Dynamic Search Box and Filter */}
           {!loading && transactions.length > 0 && (
-            <div className="relative mb-3 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input 
-                type="text" 
-                placeholder="Cari item, tipe, catatan..." 
-                value={searchHistory}
-                onChange={(e) => setSearchHistory(e.target.value)}
-                className="w-full text-xs font-semibold pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 text-slate-700"
-              />
+            <div className="flex flex-col gap-2 mb-3 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input 
+                  type="text" 
+                  placeholder="Cari item, tipe, catatan..." 
+                  value={searchHistory}
+                  onChange={(e) => setSearchHistory(e.target.value)}
+                  className="w-full text-xs font-semibold pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div className="flex gap-2">
+                {(['Semua', 'Masuk', 'Keluar'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-lg border transition-all ${
+                      filterType === type 
+                        ? type === 'Masuk' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : type === 'Keluar' ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -392,7 +417,7 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
                       <p className="font-semibold text-sm text-slate-800 truncate">{tx.itemName}</p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className="text-[11px] text-slate-400 font-medium">
-                          {new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
+                          {tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}) : '-'}
                         </span>
                         {tx.notes && (
                           <>
@@ -462,8 +487,12 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
                 <input 
                   type="date" 
                   required
-                  value={editingTx.date ? editingTx.date.split('T')[0] : ''}
-                  onChange={(e) => setEditingTx({ ...editingTx, date: new Date(e.target.value).toISOString() })}
+                  value={editingTx.date && new Date(editingTx.date).toString() !== 'Invalid Date' ? editingTx.date.split('T')[0] : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const isoDate = val && new Date(val).toString() !== 'Invalid Date' ? new Date(val).toISOString() : editingTx.date;
+                    setEditingTx({ ...editingTx, date: isoDate });
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 font-semibold text-slate-700 text-sm"
                 />
               </div>

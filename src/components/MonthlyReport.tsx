@@ -86,8 +86,8 @@ export default function MonthlyReport({ transactions, loading }: Props) {
 
       // 2. Sheet for Detailed Transactions in this specific month
       const detailedTxs = monthTransactions.map(tx => ({
-        'Tanggal': new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}),
-        'Jam': new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}),
+        'Tanggal': tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-',
+        'Jam': tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : '-',
         'Nama Barang': tx.itemName,
         'Tipe': tx.type,
         'Kuantitas': tx.quantity,
