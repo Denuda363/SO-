@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, deleteTransactionRow, updateTransactionRow, getSheetId } from '../lib/sheets';
 import { RefreshCw, Edit2, Trash2, Search, X, Loader2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import TransactionHistory from './TransactionHistory';
 
 interface Props {
   transactions: Transaction[];
@@ -12,8 +13,6 @@ interface Props {
 }
 
 export default function StockList({ transactions, loading, onRefresh, token, spreadsheetId }: Props) {
-  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [searchHistory, setSearchHistory] = useState('');
   const [filterType, setFilterType] = useState<'Semua' | 'Masuk' | 'Keluar'>('Semua');
   const [searchStock, setSearchStock] = useState('');
@@ -22,62 +21,6 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
   
   const [rowsPerPage, setRowsPerPage] = useState<number | 'all'>(10);
   const [currentPage, setCurrentPage] = useState(1);
-
-  const filteredTransactions = useMemo(() => {
-    let result = transactions;
-
-    if (filterType !== 'Semua') {
-      result = result.filter(tx => tx.type === filterType);
-    }
-
-    if (searchHistory) {
-      const query = searchHistory.toLowerCase();
-      result = result.filter(tx => {
-        const lowerName = String(tx.itemName || '').toLowerCase();
-        const lowerNotes = String(tx.notes || '').toLowerCase();
-        const lowerType = String(tx.type || '').toLowerCase();
-        const strQty = String(tx.quantity || '');
-        return lowerName.includes(query) || lowerNotes.includes(query) || lowerType.includes(query) || strQty.includes(query);
-      });
-    }
-    // Reverse logic or Sort by date to make the latest transaction appear first.
-    return [...result].reverse(); // Assuming google sheets appends to the bottom, `.reverse()` puts latest on top.
-  }, [transactions, searchHistory, filterType]);
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingTx || !editingTx.rowNumber) return;
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      await updateTransactionRow(token, spreadsheetId, editingTx.rowNumber, editingTx);
-      setEditingTx(null);
-      onRefresh();
-    } catch (err: any) {
-      setActionError(err.message || 'Gagal mengubah transaksi');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingTx || !deletingTx.rowNumber) return;
-    setActionLoading(true);
-    setActionError(null);
-    try {
-      const sheetId = await getSheetId(token, spreadsheetId, 'Transactions');
-      if (sheetId === null) {
-        throw new Error('Gagal menemukan ID sheet "Transactions"');
-      }
-      await deleteTransactionRow(token, spreadsheetId, sheetId, deletingTx.rowNumber);
-      setDeletingTx(null);
-      onRefresh();
-    } catch (err: any) {
-      setActionError(err.message || 'Gagal menghapus transaksi');
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const currentStocks = useMemo(() => {
     const stockMap = new Map<string, { masuk: number, keluar: number }>();
@@ -364,6 +307,16 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
           </div>
         </div>
 
+        {/* Transaction History Section */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          <TransactionHistory 
+            transactions={transactions}
+            loading={loading}
+            onRefresh={onRefresh}
+            token={token}
+            spreadsheetId={spreadsheetId}
+          />
+        </div>
       </div>
 
     </div>

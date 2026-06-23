@@ -15,6 +15,8 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [searchHistory, setSearchHistory] = useState('');
   const [filterType, setFilterType] = useState<'Semua' | 'Masuk' | 'Keluar'>('Semua');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -23,6 +25,28 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
 
     if (filterType !== 'Semua') {
       result = result.filter(tx => tx.type === filterType);
+    }
+
+    if (filterStartDate) {
+      const start = new Date(filterStartDate);
+      start.setHours(0, 0, 0, 0);
+      const startMs = start.getTime();
+      result = result.filter(tx => {
+        if (!tx.date) return false;
+        const txDate = new Date(tx.date).getTime();
+        return txDate >= startMs;
+      });
+    }
+
+    if (filterEndDate) {
+      const end = new Date(filterEndDate);
+      end.setHours(23, 59, 59, 999);
+      const endMs = end.getTime();
+      result = result.filter(tx => {
+        if (!tx.date) return false;
+        const txDate = new Date(tx.date).getTime();
+        return txDate <= endMs;
+      });
     }
 
     if (searchHistory) {
@@ -36,7 +60,24 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
       });
     }
     return [...result].reverse();
-  }, [transactions, searchHistory, filterType]);
+  }, [transactions, searchHistory, filterType, filterStartDate, filterEndDate]);
+
+  const groupedTransactions = useMemo(() => {
+    const result: { date: string; transactions: Transaction[] }[] = [];
+    filteredTransactions.forEach(tx => {
+      const dateStr = tx.date && new Date(tx.date).toString() !== 'Invalid Date' 
+        ? new Date(tx.date).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})
+        : 'Tanggal Tidak Diketahui';
+      
+      let group = result.find(g => g.date === dateStr);
+      if (!group) {
+        group = { date: dateStr, transactions: [] };
+        result.push(group);
+      }
+      group.transactions.push(tx);
+    });
+    return result;
+  }, [filteredTransactions]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +123,7 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
         
         {/* Dynamic Search Box and Filter */}
         {!loading && transactions.length > 0 && (
-          <div className="flex flex-col gap-2 mb-4 shrink-0">
+          <div className="flex flex-col gap-3 mb-4 shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input 
@@ -93,22 +134,44 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
                 className="w-full text-xs font-semibold pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 outline-none transition-shadow bg-slate-50 text-slate-700"
               />
             </div>
-            <div className="flex gap-2">
-              {(['Semua', 'Masuk', 'Keluar'] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`flex-1 py-2 px-2 text-xs font-bold rounded-xl border transition-all ${
-                    filterType === type 
-                      ? type === 'Masuk' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                        : type === 'Keluar' ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                      : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="flex flex-col col-span-2 md:col-span-1 border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <label className="text-[9px] font-bold text-slate-500 uppercase px-2 pt-1 pb-0 bg-slate-50">Dari Tanggal</label>
+                <input 
+                  type="date" 
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="w-full text-xs font-semibold px-2 py-1.5 focus:outline-none focus:bg-indigo-50/50 bg-transparent text-slate-700"
+                />
+              </div>
+              <div className="flex flex-col col-span-2 md:col-span-1 border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <label className="text-[9px] font-bold text-slate-500 uppercase px-2 pt-1 pb-0 bg-slate-50">Sampai Tanggal</label>
+                <input 
+                  type="date" 
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="w-full text-xs font-semibold px-2 py-1.5 focus:outline-none focus:bg-indigo-50/50 bg-transparent text-slate-700"
+                />
+              </div>
+              
+              <div className="flex gap-1 col-span-2 md:col-span-2 h-full">
+                {(['Semua', 'Masuk', 'Keluar'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`flex-1 py-1 px-1 text-[11px] font-bold rounded-xl border transition-all ${
+                      filterType === type 
+                        ? type === 'Masuk' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm' 
+                          : type === 'Keluar' ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-sm'
+                          : 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm'
+                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 shadow-sm'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -121,51 +184,57 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
                 {searchHistory ? 'Tidak ada hasil pencarian.' : 'Belum ada riwayat transaksi.'}
               </p>
           ) : (
-            <ul className="flex flex-col gap-3">
-              {filteredTransactions.map(tx => (
-                <li key={tx.id} className="flex justify-between items-center group/item hover:bg-slate-50 p-3 rounded-2xl transition-all border border-slate-100 hover:border-slate-200 bg-white shadow-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-slate-800 truncate">{tx.itemName}</p>
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <span className="text-[11px] text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded flex items-center">
-                        {tx.date && new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) : '-'}
-                      </span>
-                      {tx.notes && (
-                        <>
-                          <span className="text-[10px] text-slate-300">•</span>
-                          <span className="text-[11px] text-slate-500 truncate font-medium max-w-[200px]" title={tx.notes}>
-                            {tx.notes}
+            <div className="flex flex-col gap-6">
+              {groupedTransactions.map(group => (
+                <div key={group.date} className="flex flex-col gap-3">
+                  <h3 className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 py-2 text-sm font-bold text-slate-500 border-b border-slate-100 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    {group.date}
+                  </h3>
+                  <ul className="flex flex-col gap-3">
+                    {group.transactions.map(tx => (
+                      <li key={tx.id} className="flex justify-between items-center group/item hover:bg-slate-50 p-3 rounded-2xl transition-all border border-slate-100 hover:border-slate-200 bg-white shadow-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm text-slate-800 truncate">{tx.itemName}</p>
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {tx.notes && (
+                              <>
+                                <span className="text-[11px] text-slate-500 truncate font-medium max-w-[250px]" title={tx.notes}>
+                                  {tx.notes}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 ml-3">
+                          <span className={`text-base px-2 py-1 rounded-lg font-bold bg-opacity-10 ${tx.type === 'Masuk' ? 'text-emerald-700 bg-emerald-500' : 'text-rose-700 bg-rose-500'}`}>
+                            {tx.type === 'Masuk' ? '+' : '-'}{tx.quantity}
                           </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 ml-3">
-                    <span className={`text-base px-2 py-1 rounded-lg font-bold bg-opacity-10 ${tx.type === 'Masuk' ? 'text-emerald-700 bg-emerald-500' : 'text-rose-700 bg-rose-500'}`}>
-                      {tx.type === 'Masuk' ? '+' : '-'}{tx.quantity}
-                    </span>
-                    
-                    {/* Action buttons - on mobile always visible, on desktop shown on hover */}
-                    <div className="flex items-center gap-1 lg:opacity-0 lg:group-hover/item:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => setEditingTx(tx)}
-                        title="Ubah Transaksi"
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => setDeletingTx(tx)}
-                        title="Hapus Transaksi"
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </li>
+                          
+                          {/* Action buttons - on mobile always visible, on desktop shown on hover */}
+                          <div className="flex items-center gap-1 lg:opacity-0 lg:group-hover/item:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => setEditingTx(tx)}
+                              title="Ubah Transaksi"
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => setDeletingTx(tx)}
+                              title="Hapus Transaksi"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>
