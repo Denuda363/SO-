@@ -23,14 +23,18 @@ export default function StockList({ transactions, loading, onRefresh, token, spr
   const [currentPage, setCurrentPage] = useState(1);
 
   const filteredTransactions = useMemo(() => {
-    if (!searchHistory) return transactions;
-    const query = searchHistory.toLowerCase();
-    return transactions.filter(tx => 
-      tx.itemName.toLowerCase().includes(query) ||
-      (tx.notes && tx.notes.toLowerCase().includes(query)) ||
-      tx.type.toLowerCase().includes(query) ||
-      tx.quantity.toString().includes(query)
-    );
+    let result = transactions;
+    if (searchHistory) {
+      const query = searchHistory.toLowerCase();
+      result = transactions.filter(tx => 
+        tx.itemName.toLowerCase().includes(query) ||
+        (tx.notes && tx.notes.toLowerCase().includes(query)) ||
+        tx.type.toLowerCase().includes(query) ||
+        tx.quantity.toString().includes(query)
+      );
+    }
+    // Reverse logic or Sort by date to make the latest transaction appear first.
+    return [...result].reverse(); // Assuming google sheets appends to the bottom, `.reverse()` puts latest on top.
   }, [transactions, searchHistory]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
