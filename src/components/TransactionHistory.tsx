@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, deleteTransactionRow, updateTransactionRow, getSheetId } from '../lib/sheets';
-import { Edit2, Trash2, Search, X, Loader2 } from 'lucide-react';
+import { Transaction, deleteTransactionRow, updateTransactionRow, getSheetId, deleteMultipleTransactions } from '../lib/sheets';
+import { Edit2, Trash2, Search, X, Loader2, CheckSquare, Square } from 'lucide-react';
 
 interface Props {
   transactions: Transaction[];
@@ -13,6 +13,8 @@ interface Props {
 export default function TransactionHistory({ transactions = [], loading, onRefresh, token, spreadsheetId }: Props) {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
+  const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [searchHistory, setSearchHistory] = useState('');
   const [filterType, setFilterType] = useState<'Semua' | 'Masuk' | 'Keluar'>('Semua');
   const [filterStartDate, setFilterStartDate] = useState('');
@@ -114,11 +116,80 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
     }
   };
 
+  const handleToggleSelect = (txId: string) => {
+    setSelectedTransactions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(txId)) {
+        newSet.delete(txId);
+      } else {
+        newSet.add(txId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTransactions.size === filteredTransactions.length) {
+      setSelectedTransactions(new Set());
+    } else {
+      setSelectedTransactions(new Set(filteredTransactions.map(t => t.id)));
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedTransactions.size === 0) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const sheetId = await getSheetId(token, spreadsheetId, 'Transactions');
+      if (sheetId === null) {
+        throw new Error('Gagal menemukan ID sheet "Transactions"');
+      }
+      const txsToDelete = transactions.filter(t => selectedTransactions.has(t.id));
+      await deleteMultipleTransactions(token, spreadsheetId, sheetId, txsToDelete);
+      setBulkDeleting(false);
+      setSelectedTransactions(new Set());
+      onRefresh();
+    } catch (err: any) {
+      setActionError(err.message || 'Gagal menghapus beberapa transaksi');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex-1 flex flex-col min-h-[400px]">
         <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-100 pb-3">
-          <h2 className="font-bold text-lg text-slate-800">Riwayat Transaksi Terakhir</h2>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleSelectAll}
+              className="text-slate-400 hover:text-indigo-600 transition-colors focus:outline-none"
+              title={selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0 ? "Batal Pilih Semua" : "Pilih Semua"}
+            >
+              {selectedTransactions.size === filteredTransactions.length && filteredTransactions.length > 0 ? (
+                <CheckSquare className="w-5 h-5 text-indigo-600" />
+              ) : (
+                <Square className="w-5 h-5" />
+              )}
+            </button>
+            <h2 className="font-bold text-lg text-slate-800">Riwayat Transaksi Terakhir</h2>
+          </div>
+          
+          {selectedTransactions.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                {selectedTransactions.size} dipilih
+              </span>
+              <button 
+                onClick={() => setBulkDeleting(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-xs rounded-xl transition-colors border border-rose-200"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus Terpilih
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Dynamic Search Box and Filter */}
@@ -194,16 +265,28 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
                   <ul className="flex flex-col gap-3">
                     {group.transactions.map(tx => (
                       <li key={tx.id} className="flex justify-between items-center group/item hover:bg-slate-50 p-3 rounded-2xl transition-all border border-slate-100 hover:border-slate-200 bg-white shadow-sm">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-sm text-slate-800 truncate">{tx.itemName}</p>
-                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                            {tx.notes && (
-                              <>
-                                <span className="text-[11px] text-slate-500 truncate font-medium max-w-[250px]" title={tx.notes}>
-                                  {tx.notes}
-                                </span>
-                              </>
+                        <div className="flex items-center flex-1 min-w-0">
+                          <button 
+                            onClick={() => handleToggleSelect(tx.id)}
+                            className="mr-3 text-slate-300 hover:text-indigo-600 transition-colors focus:outline-none"
+                          >
+                            {selectedTransactions.has(tx.id) ? (
+                              <CheckSquare className="w-5 h-5 text-indigo-600" />
+                            ) : (
+                              <Square className="w-5 h-5" />
                             )}
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-sm text-slate-800 truncate">{tx.itemName}</p>
+                            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                              {tx.notes && (
+                                <>
+                                  <span className="text-[11px] text-slate-500 truncate font-medium max-w-[250px]" title={tx.notes}>
+                                    {tx.notes}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0 ml-3">
@@ -385,6 +468,55 @@ export default function TransactionHistory({ transactions = [], loading, onRefre
                 type="button"
                 disabled={actionLoading}
                 onClick={handleDeleteConfirm}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-rose-100 disabled:bg-rose-300"
+              >
+                {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {actionLoading ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleting && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 flex flex-col items-center text-center relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => { setBulkDeleting(false); setActionError(null); }}
+              className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            
+            <h3 className="font-bold text-lg text-slate-800 mb-2">Hapus {selectedTransactions.size} Transaksi?</h3>
+            <p className="text-sm text-slate-500 font-medium mb-4 leading-relaxed">
+              Apakah Anda yakin ingin menghapus {selectedTransactions.size} transaksi yang dipilih? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            
+            {actionError && (
+              <div className="w-full mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-semibold text-rose-600">
+                {actionError}
+              </div>
+            )}
+            
+            <div className="flex gap-3 w-full mt-2">
+              <button 
+                type="button"
+                disabled={actionLoading}
+                onClick={() => { setBulkDeleting(false); setActionError(null); }}
+                className="flex-1 py-3 border border-slate-200 rounded-xl text-slate-500 font-bold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                type="button"
+                disabled={actionLoading}
+                onClick={handleBulkDeleteConfirm}
                 className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-rose-100 disabled:bg-rose-300"
               >
                 {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}

@@ -177,6 +177,19 @@ export async function deleteTransactionRow(accessToken: string, spreadsheetId: s
   }
 }
 
+export async function deleteMultipleTransactions(accessToken: string, spreadsheetId: string, sheetId: number, transactionsToDelete: Transaction[]): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    transactionsToDelete.forEach((tx) => {
+      const docRef = doc(db, COLLECTION_NAME, tx.id);
+      batch.delete(docRef);
+    });
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, COLLECTION_NAME);
+  }
+}
+
 export async function updateTransactionRow(accessToken: string, spreadsheetId: string, rowNumber: number, updatedTx: Transaction): Promise<void> {
   let targetTx: Transaction | undefined;
   try {
